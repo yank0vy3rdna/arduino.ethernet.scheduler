@@ -80,6 +80,10 @@ void stateMachine() {
                 states[s.schedule[i].port - FIRST_PORT] = s.schedule[i].enabled;
             }
         }
+    } else{
+        for (bool &i : states) {
+            i = false;
+        }
     }
     for (int i = FIRST_PORT; i < FIRST_PORT + COUNT_PORTS; i++) {
         if (states[i - FIRST_PORT]) {
@@ -90,8 +94,18 @@ void stateMachine() {
     }
 }
 
+void sendState(EthernetClient &client) {
+    for (int i = FIRST_PORT; i < FIRST_PORT + COUNT_PORTS; i++) {
+        client.print('p');
+        client.print(i);
+        client.print('=');
+        client.print(states[i - FIRST_PORT] ? "yes" : "no");
+        client.print('&');
+    }
+}
+
 void loop() {
     stateMachine();
-    getSettingsFromWeb();
+    getSettingsFromWeb(sendState);
     EthernetClass::maintain();
 }

@@ -49,22 +49,26 @@ void printSettings(struct settings s){
     }
 }
 
-void getSettingsFromWeb() {
+void getSettingsFromWeb(void (* printState)(EthernetClient&)) {
     uint8_t buffer[sizeof(struct settings)];
-    if (httpRequests.connect("yank0vy3rdna.ru", 80)) { // todo send data to server
-        httpRequests.println("GET /poliv/settings_poliv.bin HTTP/1.1");
-        httpRequests.println("Host: yank0vy3rdna.ru");
+    if (httpRequests.connect("yank0vy3rdna.ru", 80)) {
+        httpRequests.print("GET /poliv/get_settings/");
+        httpRequests.print("asdfgerjgh1kjbisgudfhgkujsg3df");
+        httpRequests.print('/');
+        printState(httpRequests);
+        httpRequests.print(' ');
+        httpRequests.println("HTTP/1.1");
+        httpRequests.println("Host: 192.168.0.115");
         httpRequests.println("Connection: close");
         httpRequests.println();
-
-        while (!httpRequests.available()) {}
-        while (httpRequests.readStringUntil('\n').length() != 1) {}
+        int counter = 0;
+        while (!httpRequests.available()) {counter++; if (counter > 2000) break;}
+        while (httpRequests.readStringUntil('\n').length() != 1) {counter++; if (counter > 2000) break;}
         if (httpRequests.available() >= sizeof(struct settings)){
             httpRequests.readBytes(buffer, sizeof(struct settings));
             auto *eh = (struct settings *) buffer;
             setSettings(*eh);
         }
-
         httpRequests.stop();
     }
 }
