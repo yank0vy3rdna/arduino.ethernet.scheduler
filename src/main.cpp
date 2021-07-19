@@ -1,6 +1,5 @@
 #include "Arduino.h"
 
-#include <EEPROM.h>
 #include <Ethernet.h>
 
 #include "time_eth.h"
@@ -25,7 +24,6 @@ void setup() {
 
     // Open serial communications and wait for port to open:
     Serial.begin(9600);
-//    printSettings(s);
 
     for (int i = FIRST_PORT; i < FIRST_PORT + COUNT_PORTS; i++) {
         pinMode(i, OUTPUT);
@@ -41,11 +39,16 @@ void setup() {
     Serial.print("server is at ");
     Serial.println(EthernetClass::localIP());
 
+    Serial.print("Current clock time: ");
+    Serial.println(getTimeClock());
+
+    Serial.print("Settings on start: ");
+    printSettings(getSettings());
 
     Udp.begin(localPort);
 }
 
-uint64_t counter_of_time = 0;
+uint64_t counter_of_time = 60000;
 
 uint16_t getTime() {
     uint16_t time = getTimeClock();
@@ -76,11 +79,11 @@ void stateMachine() {
             if (now_time >= s.schedule[i].time_i and s.schedule[i].port >= FIRST_PORT and
                 s.schedule[i].port < FIRST_PORT + COUNT_PORTS) {
                 if (states[s.schedule[i].port - FIRST_PORT] != s.schedule[i].enabled)
-                    changed[s.schedule[i].port - FIRST_PORT] = 1;
+                    changed[s.schedule[i].port - FIRST_PORT] = true;
                 states[s.schedule[i].port - FIRST_PORT] = s.schedule[i].enabled;
             }
         }
-    } else{
+    } else {
         for (bool &i : states) {
             i = false;
         }
@@ -102,10 +105,14 @@ void sendState(EthernetClient &client) {
         client.print(states[i - FIRST_PORT] ? "yes" : "no");
         client.print('&');
     }
+    client.print("arduinotime=");
+    client.print(getTime());
+    client.print('&');
 }
 
 void loop() {
     stateMachine();
     getSettingsFromWeb(sendState);
     EthernetClass::maintain();
+    delay(20000);
 }

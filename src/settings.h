@@ -1,3 +1,4 @@
+#include <avr/eeprom.h>
 
 EthernetClient httpRequests;
 
@@ -15,26 +16,18 @@ struct settings {
 };
 
 void setSettings(struct settings s) {
-    uint8_t buffer[sizeof(struct settings)];
-    memcpy(&buffer, &s, sizeof(s));
-    for (int i = 0; i < sizeof(s); i++) {
-        EEPROM[i] = buffer[i];
-    }
+    eeprom_write_block((void*)&s, (void*)20, sizeof(s));
 }
 
 struct settings getSettings() {
-    uint8_t buffer[sizeof(struct settings)];
-    struct settings read_settings{};
-    for (int i = 0; i < sizeof(read_settings); i++) {
-        buffer[i] = EEPROM[i];
-    }
-    memcpy(&read_settings, &buffer, sizeof(read_settings));
-    return read_settings;
+    struct settings s{};
+    eeprom_read_block((void*)&s, (void*)20, sizeof(s));
+    return s;
 }
 
-void printSettings(struct settings s){
+void printSettings(struct settings s) {
     Serial.print("If poliv enabled: ");
-    Serial.println((int)s.enabled);
+    Serial.println((int) s.enabled);
     Serial.print("Count of rules: ");
     Serial.println(s.count);
     Serial.println();
@@ -44,12 +37,12 @@ void printSettings(struct settings s){
         Serial.print("Time: ");
         Serial.println(s.schedule[i].time_i);
         Serial.print("if enabled: ");
-        Serial.println((int)s.schedule[i].enabled);
+        Serial.println((int) s.schedule[i].enabled);
 
     }
 }
 
-void getSettingsFromWeb(void (* printState)(EthernetClient&)) {
+void getSettingsFromWeb(void (*printState)(EthernetClient &)) {
     uint8_t buffer[sizeof(struct settings)];
     if (httpRequests.connect("yank0vy3rdna.ru", 80)) {
         httpRequests.print("GET /poliv/get_settings/");
@@ -62,9 +55,15 @@ void getSettingsFromWeb(void (* printState)(EthernetClient&)) {
         httpRequests.println("Connection: close");
         httpRequests.println();
         int counter = 0;
-        while (!httpRequests.available()) {counter++; if (counter > 2000) break;}
-        while (httpRequests.readStringUntil('\n').length() != 1) {counter++; if (counter > 2000) break;}
-        if (httpRequests.available() >= sizeof(struct settings)){
+        while (!httpRequests.available()) {
+            counter++;
+            if (counter > 2000) break;
+        }
+        while (httpRequests.readStringUntil('\n').length() != 1) {
+            counter++;
+            if (counter > 2000) break;
+        }
+        if (httpRequests.available() >= sizeof(struct settings)) {
             httpRequests.readBytes(buffer, sizeof(struct settings));
             auto *eh = (struct settings *) buffer;
             setSettings(*eh);
