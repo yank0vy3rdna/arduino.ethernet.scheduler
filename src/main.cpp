@@ -16,13 +16,11 @@ IPAddress ip(192, 168, 0, 177);
 
 unsigned int localPort = 8888;
 
-EthernetUDP Udp;
 
 
 void setup() {
     rtc.begin();
 
-    // Open serial communications and wait for port to open:
     Serial.begin(9600);
 
     for (int i = FIRST_PORT; i < FIRST_PORT + COUNT_PORTS; i++) {
@@ -39,27 +37,28 @@ void setup() {
     Serial.print("server is at ");
     Serial.println(EthernetClass::localIP());
 
+    Serial.println("Settings on start: ");
+    printSettings(getSettings());
+
+    EthernetUDP Udp;
+
+    Udp.begin(localPort);
+
+    uint16_t ntp_time = getTimeFromNTP(Udp);
+    if (ntp_time != (uint16_t) -1) {
+        setTimeClock(ntp_time / 60, ntp_time % 60);
+    }
+    Udp.stop();
+
+    Serial.print("Current ntp time: ");
+    Serial.println(ntp_time);
     Serial.print("Current clock time: ");
     Serial.println(getTimeClock());
 
-    Serial.print("Settings on start: ");
-    printSettings(getSettings());
-
-    Udp.begin(localPort);
 }
-
-uint64_t counter_of_time = 60000;
 
 uint16_t getTime() {
     uint16_t time = getTimeClock();
-    if (counter_of_time >= 60000) {
-        uint16_t ntp_time = getTimeFromNTP(Udp);
-        if (time != (uint16_t) -1) {
-            setTimeClock(ntp_time / 60, ntp_time % 60);
-            counter_of_time = 0;
-        }
-    }
-    counter_of_time++;
     return time;
 }
 
@@ -68,18 +67,12 @@ bool states[COUNT_PORTS];
 
 void stateMachine() {
     struct settings s = getSettings();
-    bool changed[COUNT_PORTS];
 
-    for (bool &i : changed) {
-        i = false;
-    }
     if (s.enabled) {
         uint16_t now_time = getTime();
         for (int i = 0; i < s.count; i++) {
             if (now_time >= s.schedule[i].time_i and s.schedule[i].port >= FIRST_PORT and
                 s.schedule[i].port < FIRST_PORT + COUNT_PORTS) {
-                if (states[s.schedule[i].port - FIRST_PORT] != s.schedule[i].enabled)
-                    changed[s.schedule[i].port - FIRST_PORT] = true;
                 states[s.schedule[i].port - FIRST_PORT] = s.schedule[i].enabled;
             }
         }
@@ -113,6 +106,5 @@ void sendState(EthernetClient &client) {
 void loop() {
     stateMachine();
     getSettingsFromWeb(sendState);
-    EthernetClass::maintain();
     delay(20000);
 }

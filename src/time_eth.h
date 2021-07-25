@@ -26,23 +26,24 @@ void sendNTPpacket(const char *address, EthernetUDP &Udp) {
 
 uint16_t getTimeFromNTP(EthernetUDP &Udp) {
     sendNTPpacket(timeServer, Udp);
-
-    delay(1000);
+    delay(300);
     if (Udp.parsePacket()) {
-        Udp.read(packetBuffer, NTP_PACKET_SIZE);
+        if (Udp.available() >= NTP_PACKET_SIZE) {
+            Udp.read(packetBuffer, NTP_PACKET_SIZE);
 
-        unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-        unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-        unsigned long secsSince1900 = highWord << 16 | lowWord;
+            unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+            unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+            unsigned long secsSince1900 = highWord << 16 | lowWord;
 
-        const unsigned long seventyYears = 2208988800UL;
-        unsigned long epoch = secsSince1900 - seventyYears;
-        epoch += TIMEZONE_OFFSET;
-        epoch /= 60;
-        byte minute = epoch % 60;
-        epoch /= 60;
-        byte hour = epoch % 24;
-        return hour * 60 + minute;
+            const unsigned long seventyYears = 2208988800UL;
+            unsigned long epoch = secsSince1900 - seventyYears;
+            epoch += TIMEZONE_OFFSET;
+            epoch /= 60;
+            byte minute = epoch % 60;
+            epoch /= 60;
+            byte hour = epoch % 24;
+            return hour * 60 + minute;
+        }
     }
     return -1;
 }

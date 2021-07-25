@@ -1,5 +1,4 @@
 #include <avr/eeprom.h>
-
 EthernetClient httpRequests;
 
 
@@ -51,14 +50,12 @@ void getSettingsFromWeb(void (*printState)(EthernetClient &)) {
         printState(httpRequests);
         httpRequests.print(' ');
         httpRequests.println("HTTP/1.1");
-        httpRequests.println("Host: 192.168.0.115");
+        httpRequests.println("Host: yank0vy3rdna.ru");
         httpRequests.println("Connection: close");
         httpRequests.println();
         int counter = 0;
-        while (!httpRequests.available()) {
-            counter++;
-            if (counter > 2000) break;
-        }
+        delay(300);
+
         while (httpRequests.readStringUntil('\n').length() != 1) {
             counter++;
             if (counter > 2000) break;
