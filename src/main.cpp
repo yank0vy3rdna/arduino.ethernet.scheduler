@@ -5,6 +5,7 @@
 #include "time_eth.h"
 #include "settings.h"
 #include "time_clock.h"
+#include <avr/wdt.h>
 
 #define FIRST_PORT 6
 #define COUNT_PORTS 2
@@ -54,7 +55,9 @@ void setup() {
     Serial.println(ntp_time);
     Serial.print("Current clock time: ");
     Serial.println(getTimeClock());
-
+    Serial.println("Wait 5 sec..");
+    delay(5000);
+    wdt_enable(WDTO_8S);
 }
 
 uint16_t getTime() {
@@ -106,5 +109,12 @@ void sendState(EthernetClient &client) {
 void loop() {
     stateMachine();
     getSettingsFromWeb(sendState);
-    delay(20000);
+    wdt_reset();
+    delay(5000);
+    wdt_reset();
+    delay(5000);
+    wdt_reset();
+    delay(5000);
+    wdt_reset();
+    delay(5000);
 }
